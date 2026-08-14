@@ -27,14 +27,14 @@ print(f"Month of Travel     : {month_of_travel}")
 print("=========================================================")
 print(f"Total Cost                    : {total_cost}")
 
-category = get_trip_category(budget)
-print(f"Travel Category               : {category}")
+categories = get_trip_category(budget)
+print(f"Travel Category               : {categories}")
 
 recommended_transportation = get_transportation(budget)
 print(f"Recomended Transportation     : {recommended_transportation}")
 
 daily_budget = calculate_daily_budget(budget, days)
-print(f"Travel Category               : {category}")
+print(f"Travel Category               : {categories}")
 print(f"Daily Budget                  : {daily_budget} {currency}/day")
 
 season = get_trip_season(month_of_travel)
