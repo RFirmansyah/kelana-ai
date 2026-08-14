@@ -18,4 +18,12 @@ def get_transportation(ibudget):
     elif ibudget <= 3000:
         return "Train"
     else:
-        return "Flight"        
+        return "Flight"     
+
+def get_trip_season(imonth):
+    if imonth == "December":
+        return "Peak Season"
+    elif imonth == "June":
+        return "Holiday Season"
+    else :
+        return "Regular Season"           

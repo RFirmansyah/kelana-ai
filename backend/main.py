@@ -1,4 +1,4 @@
-from services.trip_service import total_cost, calculate_daily_budget, get_trip_category, get_transportation
+from services.trip_service import total_cost, calculate_daily_budget, get_trip_category, get_transportation, get_trip_season
 
 destination         = input("Destination                : ")
 country             = input("Country                    : ")
@@ -36,6 +36,9 @@ print(f"Recomended Transportation     : {recommended_transportation}")
 daily_budget = calculate_daily_budget(budget, days)
 print(f"Travel Category               : {category}")
 print(f"Daily Budget                  : {daily_budget} {currency}/day")
+
+season = get_trip_season(month_of_travel)
+print(f"Season                        : {season}")
 
 recommended_place = [
     "Tokyo Tower",
