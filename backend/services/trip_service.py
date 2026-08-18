@@ -12,6 +12,9 @@ def get_trip_category(ibudget):
     else:
         return "Luxury"
 
+def get_trip_categories():
+    return ["Backpacker","Standard","Luxury"]    
+
 def get_transportation(ibudget):
     if ibudget < 1000:
         return "Bus"
@@ -19,6 +22,12 @@ def get_transportation(ibudget):
         return "Train"
     else:
         return "Flight"     
+
+def get_transportations():
+    return ["Bus","Train","Flight"]
+
+def get_recommendations():
+    return ["Tokyo Tower","Mount Fuji","Shibuya"]
 
 def get_trip_season(imonth):
     if imonth == "December":

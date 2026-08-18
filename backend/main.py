@@ -1,51 +1,63 @@
-from services.trip_service import total_cost, calculate_daily_budget, get_trip_category, get_transportation, get_trip_season
+from fastapi import FastAPI
+from pydantic import BaseModel
+from services.trip_service import (
+    calculate_daily_budget,
+    get_trip_category,
+    get_transportation,
+    get_trip_categories,
+    get_transportations,
+    get_recommendations
+)
 
-destination         = input("Destination                : ")
-country             = input("Country                    : ")
-currency            = input("Currency                   : ")
-days                = int(input("Days                       : "))
-budget              = float(input("Budget                     : "))
-travel_style        = input("Travel Style               : ")
-month_of_travel     = input("Month of Travel            : ")
-hotel_cost          = float(input("Hotel Cost                 : "))
-transportation_cost = float(input("Transportation Cost        : "))
+class TripRequest(BaseModel):
+    destination: str
+    days: int
+    budget: float
+    travel_style: str
 
-#misc_cost = 1000
+app = FastAPI()
 
-total_cost =  total_cost(hotel_cost, transportation_cost)#+ misc_cost
+@app.get("/")
+def home():
+    return{
+        "message": "Welcome to KelanaAI"
+    }
 
-print("=========================================================")
-print("==================Kelana AI - SUMMARY====================")
-print("=========================================================")
-print(f"Destination         : {destination}")
-print(f"Country             : {country}")
-print(f"Currency            : {currency}")
-print(f"Days                : {days}")
-print(f"Budget              : {budget} {currency}")
-print(f"Travel Style        : {travel_style}")
-print(f"Month of Travel     : {month_of_travel}")
-print("=========================================================")
-print(f"Total Cost                    : {total_cost}")
+@app.get("/api/v1/trip-categories")
+def home():
+    trip_categories = get_trip_categories()
 
-categories = get_trip_category(budget)
-print(f"Travel Category               : {categories}")
+    return{
+        "trip_categories" : trip_categories
+    }    
 
-recommended_transportation = get_transportation(budget)
-print(f"Recomended Transportation     : {recommended_transportation}")
+@app.get("/api/v1/recommendations")
+def home():
+    dest_recommendations = get_recommendations()
 
-daily_budget = calculate_daily_budget(budget, days)
-print(f"Travel Category               : {categories}")
-print(f"Daily Budget                  : {daily_budget} {currency}/day")
+    return{
+        "dest_recommendations" : dest_recommendations
+    }    
 
-season = get_trip_season(month_of_travel)
-print(f"Season                        : {season}")
+@app.get("/api/v1/transportations")
+def home():
+    transportations_mod = get_transportations()
 
-recommended_place = [
-    "Tokyo Tower",
-    "Shibuya",
-    "Mount Fuji"
-]
+    return{
+        "transportations_mod" : transportations_mod
+    }            
 
-print("Recommended places            : ")
-for place in recommended_place:
-    print(f"- {place}")
+@app.post("/api/v1/trips")    
+def create_trip(request: TripRequest):
+    daily_budget = calculate_daily_budget(request.budget, request.days)
+    category = get_trip_category(request.budget)
+    recommended_transportation = get_transportation(request.budget)
+
+    return {
+        "destination" : request.destination,
+        "budget" : request.budget,
+        "daily_budget" : daily_budget,
+        "category" : category,
+        "travel_style" : request.travel_style,
+        "recommended_transportation" : recommended_transportation,
+    }
