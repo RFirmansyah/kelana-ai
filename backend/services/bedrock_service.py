@@ -60,8 +60,11 @@ def get_ai_recommendation(
         destination:  City / country the traveller is visiting.
         days:         Length of the trip in days.
         budget:       Total budget in USD.
-        travel_style: Free-text style description (e.g. "backpacker",
-                      "luxury", "family").
+        travel_style: Free-text style description (e.g. "backpacker", "luxury", "family").
+        daily_itenary: Sequence of activities that can be undertaken or the tourist destinations that can be visited.
+        estimated_daily_budget: Total budget spent/required daily in USD
+        local_food_recommendations: Recommend local foods that can be enjoyed or purchased.
+        transportation_suggestions: Recommend local modes of transportation that can be used to travel from one location to another.
 
     Returns:
         The model's text response.
