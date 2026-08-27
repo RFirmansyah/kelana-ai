@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface TripResult {
   id: number;
@@ -50,7 +52,7 @@ function Field({
 }
 
 const inputCls =
-  "w-full rounded-2xl bg-white/8 border border-white/10 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none transition duration-200 focus:border-transparent focus:ring-2";
+  "w-full rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition duration-200 focus:border-transparent focus:ring-2 dark:bg-white/5 dark:border-white/10 dark:text-gray-100 dark:placeholder-gray-500";
 
 // ─── Stat Chip ────────────────────────────────────────────────────────────────
 function StatChip({
@@ -66,17 +68,18 @@ function StatChip({
 }) {
   return (
     <div
-      className={`flex flex-col gap-1 rounded-2xl border bg-white/5 p-4 backdrop-blur-sm ${ring}`}
+      className={`flex flex-col gap-1 rounded-2xl border bg-white shadow-sm dark:bg-[#161b22] dark:shadow-none p-4 ${ring}`}
     >
       <span className="text-2xl">{icon}</span>
-      <p className="text-[10px] uppercase tracking-widest text-slate-400">{label}</p>
-      <p className="text-sm font-bold text-white leading-tight">{value}</p>
+      <p className="text-[10px] uppercase tracking-widest text-gray-400 dark:text-gray-500">{label}</p>
+      <p className="text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">{value}</p>
     </div>
   );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const router = useRouter();
   const [form, setForm] = useState({
     destination: "",
     budget: "",
@@ -116,6 +119,7 @@ export default function Home() {
 
       const data: TripResult = await response.json();
       setResult(data);
+      router.push("/trips");
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Unexpected error occurred."
@@ -126,26 +130,32 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#080d1a] text-white antialiased">
+    <div className="min-h-screen flex flex-col bg-gray-100 text-gray-900 dark:bg-[#0d1117] dark:text-gray-100 antialiased transition-colors duration-200">
 
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#080d1a]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white/80 dark:border-white/8 dark:bg-[#0d1117]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
+          <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-sky-500 to-violet-500 dark:from-sky-400 dark:to-violet-400 bg-clip-text text-transparent">
             KelanaAI
           </span>
-          <nav className="hidden sm:flex items-center gap-6 text-sm text-slate-400">
-            <a href="#plan" className="hover:text-white transition-colors">Plan Trip</a>
+          <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+            <a href="#plan" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Plan Trip</a>
+            <a href="/trips" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">My Trips</a>
             <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
             >
               <GithubIcon />
               GitHub
             </a>
+            <ThemeToggle />
           </nav>
+          {/* Mobile toggle */}
+          <div className="sm:hidden">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
@@ -162,7 +172,7 @@ export default function Home() {
             unoptimized
           />
           {/* gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#080d1a]/70 via-[#080d1a]/50 to-[#080d1a]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/60 via-gray-900/30 to-gray-100 dark:to-[#0d1117]" />
         </div>
 
         {/* Badge */}
@@ -172,14 +182,14 @@ export default function Home() {
 
         {/* Headline */}
         <h1 className="max-w-3xl text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl md:text-7xl">
-          <span className="bg-gradient-to-r from-sky-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
+          <span className="text-white">
             Discover the World
           </span>
           <br />
-          <span className="text-white">with KelanaAI</span>
+          <span className="font-extrabold tracking-tight bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">with KelanaAI</span>
         </h1>
 
-        <p className="mt-6 max-w-xl text-base text-slate-300 leading-relaxed sm:text-lg">
+        <p className="mt-6 max-w-xl text-base text-gray-300 leading-relaxed sm:text-lg">
           Enter your dream destination, set your budget, and let our AI craft a
           fully personalized travel itinerary — in seconds.
         </p>
@@ -200,7 +210,7 @@ export default function Home() {
           ].map((s) => (
             <div key={s.label} className="flex flex-col">
               <span className="text-3xl font-extrabold text-white">{s.value}</span>
-              <span className="text-xs text-slate-400 uppercase tracking-widest mt-0.5">
+              <span className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">
                 {s.label}
               </span>
             </div>
@@ -214,13 +224,13 @@ export default function Home() {
 
           {/* Section header */}
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-gray-900 dark:text-gray-100">
               Plan Your{" "}
-              <span className="bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-sky-500 to-violet-500 dark:from-sky-400 dark:to-violet-400 bg-clip-text text-transparent">
                 Next Adventure
               </span>
             </h2>
-            <p className="mt-3 text-slate-400 text-sm sm:text-base max-w-lg mx-auto">
+            <p className="mt-3 text-gray-500 dark:text-gray-400 text-sm sm:text-base max-w-lg mx-auto">
               Fill in the details and our AI will generate a tailored itinerary,
               budget breakdown, and transport recommendations.
             </p>
@@ -230,7 +240,7 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 items-start">
 
             {/* ── Form Card ── */}
-            <div className="rounded-3xl border border-white/8 bg-white/4 backdrop-blur-xl shadow-2xl shadow-black/40 p-6 sm:p-8">
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-xl shadow-gray-200/60 dark:border-white/8 dark:bg-[#161b22] dark:shadow-black/40 p-6 sm:p-8">
               <form onSubmit={handleSubmit} className="space-y-5">
 
                 <Field id="destination" label="Destination" icon="🌍" accent="text-sky-400">
@@ -316,7 +326,7 @@ export default function Home() {
               </form>
 
               {error && (
-                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3.5 text-sm text-red-300">
+                <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-300 bg-red-50 text-red-600 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-400 px-4 py-3.5 text-sm">
                   <span className="mt-0.5 shrink-0">⚠️</span>
                   <span>{error}</span>
                 </div>
@@ -337,7 +347,7 @@ export default function Home() {
                       className="object-cover object-center transition-all duration-700"
                       unoptimized
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080d1a]/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4">
                       <p className="text-xl font-extrabold text-white drop-shadow-lg">
                         {result.destination}
@@ -354,7 +364,7 @@ export default function Home() {
                       className="object-cover object-center"
                       unoptimized
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080d1a]/70 via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
                       <p className="text-lg font-bold text-white drop-shadow-lg">
                         Where will you go next?
@@ -381,14 +391,14 @@ export default function Home() {
 
           {/* ── AI Itinerary (full width below) ── */}
           {result?.ai_recommendation && (
-            <div className="mt-10 rounded-3xl border border-indigo-500/20 bg-indigo-500/5 backdrop-blur-xl shadow-xl p-6 sm:p-8">
+            <div className="mt-10 rounded-3xl border border-indigo-200 bg-indigo-50 dark:border-indigo-500/20 dark:bg-indigo-500/5 shadow-sm dark:shadow-xl p-6 sm:p-8">
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-lg shadow-lg shadow-indigo-900/50">
                   🤖
                 </div>
                 <div>
-                  <p className="text-base font-bold text-white">AI Itinerary</p>
-                  <p className="text-xs text-slate-400">Generated by AWS Bedrock</p>
+                  <p className="text-base font-bold text-gray-900 dark:text-gray-100">AI Itinerary</p>
+                  <p className="text-xs text-gray-500">Generated by AWS Bedrock</p>
                 </div>
               </div>
 
@@ -396,18 +406,18 @@ export default function Home() {
                 <ReactMarkdown
                   components={{
                     h1: ({ children }) => (
-                      <h1 className="text-xl font-bold text-white mt-8 mb-3 border-b border-white/10 pb-2 first:mt-0">
+                      <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-8 mb-3 border-b border-gray-200 dark:border-white/10 pb-2 first:mt-0">
                         {children}
                       </h1>
                     ),
                     h2: ({ children }) => (
-                      <h2 className="text-lg font-bold text-sky-300 mt-6 mb-2">{children}</h2>
+                      <h2 className="text-lg font-bold text-sky-600 dark:text-sky-400 mt-6 mb-2">{children}</h2>
                     ),
                     h3: ({ children }) => (
-                      <h3 className="text-base font-semibold text-indigo-300 mt-4 mb-1">{children}</h3>
+                      <h3 className="text-base font-semibold text-indigo-600 dark:text-indigo-400 mt-4 mb-1">{children}</h3>
                     ),
                     p: ({ children }) => (
-                      <p className="text-sm text-slate-200 leading-7 mb-3">{children}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 leading-7 mb-3">{children}</p>
                     ),
                     ul: ({ children }) => (
                       <ul className="mb-4 space-y-2 pl-1">{children}</ul>
@@ -418,28 +428,28 @@ export default function Home() {
                     li: ({ children, ...props }) => {
                       const ordered = (props as { ordered?: boolean }).ordered;
                       return ordered ? (
-                        <li className="text-sm text-slate-200 leading-6 pl-1">{children}</li>
+                        <li className="text-sm text-gray-700 dark:text-gray-300 leading-6 pl-1">{children}</li>
                       ) : (
-                        <li className="flex gap-2.5 text-sm text-slate-200 leading-6">
+                        <li className="flex gap-2.5 text-sm text-gray-700 dark:text-gray-300 leading-6">
                           <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-400" />
                           <span>{children}</span>
                         </li>
                       );
                     },
                     strong: ({ children }) => (
-                      <strong className="font-semibold text-white">{children}</strong>
+                      <strong className="font-semibold text-gray-900 dark:text-gray-100">{children}</strong>
                     ),
                     em: ({ children }) => (
-                      <em className="italic text-slate-300">{children}</em>
+                      <em className="italic text-gray-500 dark:text-gray-400">{children}</em>
                     ),
-                    hr: () => <hr className="my-5 border-white/10" />,
+                    hr: () => <hr className="my-5 border-gray-200 dark:border-white/10" />,
                     blockquote: ({ children }) => (
-                      <blockquote className="my-4 border-l-4 border-indigo-500 pl-4 text-sm text-slate-300 italic">
+                      <blockquote className="my-4 border-l-4 border-indigo-400 pl-4 text-sm text-gray-500 dark:text-gray-400 italic">
                         {children}
                       </blockquote>
                     ),
                     code: ({ children }) => (
-                      <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-xs text-sky-300">
+                      <code className="rounded bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 font-mono text-xs text-sky-600 dark:text-sky-400">
                         {children}
                       </code>
                     ),
@@ -454,36 +464,40 @@ export default function Home() {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 bg-[#080d1a] px-5 py-10">
+      <footer className="border-t border-gray-200 bg-white dark:border-white/8 dark:bg-[#0d1117] px-5 py-10">
         <div className="mx-auto max-w-6xl flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
 
           {/* Brand */}
           <div className="flex flex-col items-center gap-1 sm:items-start">
-            <span className="text-lg font-extrabold bg-gradient-to-r from-sky-400 to-violet-400 bg-clip-text text-transparent">
+            <span className="text-lg font-extrabold bg-gradient-to-r from-sky-500 to-violet-500 dark:from-sky-400 dark:to-violet-400 bg-clip-text text-transparent">
               KelanaAI
             </span>
-            <p className="text-xs text-slate-500">AI-Powered Travel Planner</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500">AI-Powered Travel Planner</p>
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-5 text-sm text-slate-400">
+          <div className="flex items-center gap-5 text-sm text-gray-500 dark:text-gray-400">
             <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-white transition-colors"
+              className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
             >
               <GithubIcon />
               GitHub
             </a>
-            <span className="text-white/10">|</span>
-            <a href="#plan" className="hover:text-white transition-colors">
+            <span className="text-gray-200 dark:text-white/10">|</span>
+            <a href="#plan" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               Plan a Trip
+            </a>
+            <span className="text-gray-200 dark:text-white/10">|</span>
+            <a href="/trips" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+              My Trips
             </a>
           </div>
 
           {/* Copyright */}
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-gray-400 dark:text-gray-600">
             &copy; {new Date().getFullYear()} KelanaAI. All rights reserved.
           </p>
         </div>

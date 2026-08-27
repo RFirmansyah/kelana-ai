@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
 from pydantic import BaseModel
 from services.trip_service import (
     calculate_daily_budget,
@@ -15,6 +17,8 @@ from services.bedrock_service import (
 )
 from models.trip import Trip
 from database import SessionLocal, init_db
+
+load_dotenv()
 
 class TripRequest(BaseModel):
     destination: str
