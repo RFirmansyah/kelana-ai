@@ -1,10 +1,20 @@
 import Link from "next/link"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 import { getTrips } from "@/services/tripService"
 import TripsList from "@/components/TripsList"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { UserMenu } from "@/components/UserMenu"
 import type { Trip } from "@/types/trip"
 
+export const dynamic = "force-dynamic"
+
 export default async function TripsPage() {
+  const cookieStore = await cookies()
+  if (!cookieStore.get("access_token")?.value) {
+    redirect("/login")
+  }
+
   const trips: Trip[] = await getTrips()
 
   return (
@@ -24,6 +34,7 @@ export default async function TripsPage() {
               ← Back to Planner
             </Link>
             <ThemeToggle />
+            <UserMenu />
           </div>
         </div>
 

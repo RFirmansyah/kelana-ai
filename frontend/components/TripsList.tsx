@@ -2,9 +2,11 @@
 
 import { useState, useMemo } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import type { Trip } from "@/types/trip"
 import { formatUSD, getCategoryMeta, getTravelStyleIcon, getDestinationIcon } from "@/lib/tripMeta"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 const PAGE_SIZE = 10
 const RECENT_COUNT = 3
 
@@ -12,9 +14,42 @@ interface TripsListProps {
   trips: Trip[]
 }
 
-export default function TripsList({ trips }: TripsListProps) {
+export default function TripsList({ trips: initialTrips }: TripsListProps) {
+  const router = useRouter()
+  const [trips, setTrips] = useState(initialTrips)
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [confirmingId, setConfirmingId] = useState<number | null>(null)
+
+  async function handleDelete(id: number) {
+    const token = localStorage.getItem("access_token")
+    if (!token) {
+      router.push("/login")
+      return
+    }
+
+    setDeletingId(id)
+    try {
+      const res = await fetch(`${API_URL}/trips/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to delete trip (${res.status})`)
+      }
+
+      setTrips((prev) => prev.filter((t) => t.id !== id))
+      router.refresh()
+    } catch {
+      // Keep it simple — leave the row in place if deletion fails so the
+      // user can retry, rather than silently losing track of the trip.
+    } finally {
+      setDeletingId(null)
+      setConfirmingId(null)
+    }
+  }
 
   const isSearching = query.trim().length > 0
 
@@ -124,12 +159,45 @@ export default function TripsList({ trips }: TripsListProps) {
                   </p>
 
                 </div>
-                <Link
-                  href={`/trips/${t.id}`}
-                  className="shrink-0 text-xs font-semibold text-sky-600 hover:text-sky-800 border border-sky-400 hover:border-sky-600 dark:text-sky-400 dark:hover:text-white dark:border-sky-500/40 dark:hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  View Details →
-                </Link>
+                <div className="shrink-0 flex items-center gap-2">
+                  <Link
+                    href={`/trips/${t.id}`}
+                    className="text-xs font-semibold text-sky-600 hover:text-sky-800 border border-sky-400 hover:border-sky-600 dark:text-sky-400 dark:hover:text-white dark:border-sky-500/40 dark:hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    View Details →
+                  </Link>
+
+                  {confirmingId === t.id ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(t.id)}
+                        disabled={deletingId === t.id}
+                        className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        {deletingId === t.id ? "Deleting…" : "Confirm"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmingId(null)}
+                        disabled={deletingId === t.id}
+                        className="text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-2 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingId(t.id)}
+                      aria-label="Delete trip"
+                      title="Delete trip"
+                      className="text-xs font-semibold text-red-500 hover:text-red-700 border border-red-300 hover:border-red-500 dark:text-red-400 dark:hover:text-red-300 dark:border-red-500/40 dark:hover:border-red-400 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
               </li>
             )
           })}

@@ -1,6 +1,7 @@
 export interface Trip {
   id: number
   destination: string
+  days: number | null
   budget: number
   daily_budget: number
   category: string

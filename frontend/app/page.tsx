@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 
 interface TripResult {
   id: number;
@@ -80,6 +81,7 @@ function StatChip({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Home() {
   const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [form, setForm] = useState({
     destination: "",
     budget: "",
@@ -89,6 +91,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TripResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    setCheckingAuth(false);
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -101,9 +112,13 @@ export default function Home() {
     setResult(null);
 
     try {
+      const token = localStorage.getItem("access_token");
       const response = await fetch("http://localhost:8000/api/v1/trips", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           destination: form.destination,
           budget: parseFloat(form.budget),
@@ -119,7 +134,7 @@ export default function Home() {
 
       const data: TripResult = await response.json();
       setResult(data);
-      router.push("/trips");
+      window.location.href = "/trips";
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Unexpected error occurred."
@@ -128,6 +143,14 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#0d1117]">
+        <div className="w-8 h-8 rounded-full border-4 border-sky-100 border-t-sky-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 text-gray-900 dark:bg-[#0d1117] dark:text-gray-100 antialiased transition-colors duration-200">
@@ -151,10 +174,12 @@ export default function Home() {
               GitHub
             </a>
             <ThemeToggle />
+          <UserMenu />
           </nav>
           {/* Mobile toggle */}
-          <div className="sm:hidden">
+          <div className="sm:hidden flex items-center gap-2">
             <ThemeToggle />
+            <UserMenu />
           </div>
         </div>
       </header>
