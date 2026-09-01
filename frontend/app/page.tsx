@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
+import { ChatPanel } from "@/components/ChatPanel";
 
 interface TripResult {
   id: number;
@@ -79,9 +80,11 @@ function StatChip({
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [activeTab, setActiveTab] = useState<"plan" | "chat">("plan");
   const [form, setForm] = useState({
     destination: "",
     budget: "",
@@ -100,6 +103,12 @@ export default function Home() {
     }
     setCheckingAuth(false);
   }, [router]);
+
+  useEffect(() => {
+    if (searchParams.get("tab") === "chat") {
+      setActiveTab("chat");
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -261,6 +270,42 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Tab switcher */}
+          <div className="mb-8 flex justify-center">
+            <div className="inline-flex items-center gap-1 rounded-2xl border border-gray-200 bg-white p-1 shadow-sm dark:border-white/8 dark:bg-[#161b22]">
+              <button
+                type="button"
+                onClick={() => setActiveTab("plan")}
+                className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                  activeTab === "plan"
+                    ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                }`}
+              >
+                ✨ Plan a Trip
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("chat")}
+                className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                  activeTab === "chat"
+                    ? "bg-gradient-to-r from-sky-500 to-violet-500 text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                }`}
+              >
+                💬 Ask Assistant
+              </button>
+            </div>
+          </div>
+
+          {activeTab === "chat" && (
+            <div className="max-w-2xl mx-auto">
+              <ChatPanel heightClass="h-[560px]" />
+            </div>
+          )}
+
+          {activeTab === "plan" && (
+          <>
           {/* Two-column layout on desktop, single column on mobile */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 items-start">
 
@@ -485,6 +530,8 @@ export default function Home() {
               </div>
             </div>
           )}
+          </>
+          )}
         </div>
       </section>
 
@@ -528,6 +575,21 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─── Page (wraps HomeContent in Suspense since it uses useSearchParams) ───────
+export default function Home() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-[#0d1117]">
+          <div className="w-8 h-8 rounded-full border-4 border-sky-100 border-t-sky-500 animate-spin" />
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }
 

@@ -164,7 +164,7 @@ export default function LoginPage() {
         {/* Name — register only */}
         {mode === "register" && (
           <div className="flex flex-col gap-1">
-            <div className="rounded-2xl bg-[#f0f4f8] px-5 py-4 flex flex-col gap-1 shadow-sm">
+            <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
               <label
                 htmlFor="name"
                 className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -179,7 +179,7 @@ export default function LoginPage() {
                 value={form.name}
                 onChange={handleChange}
                 autoComplete="name"
-                className="bg-transparent text-base text-[var(--foreground)] placeholder-gray-400 outline-none"
+                className="bg-transparent text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
               />
             </div>
             {fieldErrors.name && (
@@ -190,7 +190,7 @@ export default function LoginPage() {
 
         {/* Email */}
         <div className="flex flex-col gap-1">
-          <div className="rounded-2xl bg-[#f0f4f8] px-5 py-4 flex flex-col gap-1 shadow-sm">
+          <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
             <label
               htmlFor="email"
               className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -205,7 +205,7 @@ export default function LoginPage() {
               value={form.email}
               onChange={handleChange}
               autoComplete="email"
-              className="bg-transparent text-base text-[var(--foreground)] placeholder-gray-400 outline-none"
+              className="bg-transparent text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
             />
           </div>
           {fieldErrors.email && (
@@ -215,7 +215,7 @@ export default function LoginPage() {
 
         {/* Password */}
         <div className="flex flex-col gap-1">
-          <div className="rounded-2xl bg-[#f0f4f8] px-5 py-4 flex flex-col gap-1 shadow-sm">
+          <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
             <label
               htmlFor="password"
               className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -231,7 +231,7 @@ export default function LoginPage() {
                 value={form.password}
                 onChange={handleChange}
                 autoComplete={mode === "login" ? "current-password" : "new-password"}
-                className="flex-1 bg-transparent text-base text-[var(--foreground)] placeholder-gray-400 outline-none"
+                className="flex-1 bg-transparent text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
               />
               <button
                 type="button"
@@ -261,7 +261,7 @@ export default function LoginPage() {
         {/* Confirm password — register only */}
         {mode === "register" && (
           <div className="flex flex-col gap-1">
-            <div className="rounded-2xl bg-[#f0f4f8] px-5 py-4 flex flex-col gap-1 shadow-sm">
+            <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
               <label
                 htmlFor="confirmPassword"
                 className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -277,7 +277,7 @@ export default function LoginPage() {
                   value={form.confirmPassword}
                   onChange={handleChange}
                   autoComplete="new-password"
-                  className="flex-1 bg-transparent text-base text-[var(--foreground)] placeholder-gray-400 outline-none"
+                  className="flex-1 bg-transparent text-base text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none"
                 />
                 <button
                   type="button"

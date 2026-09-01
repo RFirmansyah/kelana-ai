@@ -21,6 +21,7 @@ from services.auth_service import register_user, login_user, get_current_user, c
 from models.trip import Trip
 from models.user import User
 from database import SessionLocal, init_db
+from services.kb_service import retrieve_and_generate # ask_knowledge_base
 
 load_dotenv()
 
@@ -316,3 +317,18 @@ def update_trip(trip_id: int, request: TripRequest, current_user: User = Depends
     db.close()
 
     return trip
+
+class QuestionRequest(BaseModel):
+    question: str    
+
+@app.post("/api/v1/ask")
+def ask_endpoint(request: QuestionRequest, current_user: User = Depends(get_current_user)):
+  # 1. Send question to Knowledge Base
+  answer = retrieve_and_generate(
+    request.question
+  )
+  # 2. Return grounded answer to frontend
+  return {
+    "question": request.question,
+    "answer": answer
+  }
