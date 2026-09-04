@@ -12,10 +12,11 @@ export function UserMenu() {
     setUsername(localStorage.getItem("username"));
   }, []);
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout();
     setUsername(null);
-    router.push("/login")
+    router.replace("/login");
+    router.refresh();
   }
 
   return (
@@ -27,7 +28,7 @@ export function UserMenu() {
       )}
     <div className="flex items-center gap-2">
       <a
-        href="/?tab=chat#plan"
+        href="/chat"
         aria-label="Ask Assistant"
         title="Ask Assistant"
         className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 bg-white text-gray-600 shadow-sm transition-all hover:border-sky-400 hover:text-sky-600 dark:border-white/10 dark:bg-white/5 dark:text-gray-400 dark:hover:border-sky-500 dark:hover:text-sky-400"

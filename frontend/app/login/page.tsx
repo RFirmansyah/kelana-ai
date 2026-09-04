@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login, register, getMe } from "@/services/authService";
 
@@ -70,6 +70,18 @@ export default function LoginPage() {
 
   const [pending, setPending] = useState(false);
 
+  // Password managers (LastPass, 1Password, etc.) inject their own DOM
+  // nodes into input fields as soon as they appear. If those inputs are
+  // part of the very first (server-matching) client render, that injection
+  // races React's hydration check and throws a hydration-mismatch error.
+  // Rendering a static skeleton for that first pass — with no real inputs
+  // for extensions to touch — and swapping in the real form only after
+  // mount sidesteps the race entirely.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -88,20 +100,42 @@ export default function LoginPage() {
   }
 
   async function completeLogin(email: string, password: string) {
-    const { access_token } = await login(email, password);
-    localStorage.setItem("access_token", access_token);
-    document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
+    const res = await login(email, password);
+    const { access_token, name } = res as typeof res & { name?: string };
 
-    // Fetch the user's name once so the navbar can show a personalized
-    // welcome without hitting the API again on every page load.
-    try {
-      const me = await getMe(access_token);
-      localStorage.setItem("username", me.name);
-    } catch {
-      // Non-fatal — the welcome message just won't show a name.
+    // Keep the token for browser-side API calls.
+    localStorage.setItem("access_token", access_token);
+
+    if (name) {
+      localStorage.setItem("username", name);
+    } else {
+      try {
+        const me = await getMe(access_token);
+        localStorage.setItem("username", me.name);
+      } catch {
+        // Profile lookup is non-fatal; authentication is already successful.
+      }
     }
 
-    window.location.href = "/trips";
+    // Establish the Next.js session cookie through a server response before
+    // navigating to a server-rendered page. This removes the race between
+    // document.cookie and the first /trips request after login.
+    const sessionRes = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token }),
+      cache: "no-store",
+    });
+
+    if (!sessionRes.ok) {
+      throw new Error("Unable to establish the application session.");
+    }
+
+    // The cookie has now been set by Next.js. Replace the login route without
+    // adding it to browser history, then refresh the server component tree so
+    // /trips reads the newly established session immediately.
+    router.replace("/trips");
+    router.refresh();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -156,15 +190,20 @@ export default function LoginPage() {
       </div>
 
       {/* Form */}
+      {!mounted ? (
+        <FormSkeleton mode={mode} />
+      ) : (
       <form
         onSubmit={handleSubmit}
         noValidate
         className="w-full max-w-lg flex flex-col gap-3"
       >
-        {/* Name — register only */}
+        {/* Name â€” register only */}
         {mode === "register" && (
           <div className="flex flex-col gap-1">
-            <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
+            <div
+              className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm"
+            >
               <label
                 htmlFor="name"
                 className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -190,7 +229,9 @@ export default function LoginPage() {
 
         {/* Email */}
         <div className="flex flex-col gap-1">
-          <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
+          <div
+            className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm"
+          >
             <label
               htmlFor="email"
               className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -215,7 +256,9 @@ export default function LoginPage() {
 
         {/* Password */}
         <div className="flex flex-col gap-1">
-          <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
+          <div
+            className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm"
+          >
             <label
               htmlFor="password"
               className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -258,10 +301,12 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* Confirm password — register only */}
+        {/* Confirm password â€” register only */}
         {mode === "register" && (
           <div className="flex flex-col gap-1">
-            <div className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm">
+            <div
+              className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 flex flex-col gap-1 shadow-sm"
+            >
               <label
                 htmlFor="confirmPassword"
                 className="text-xs font-bold uppercase tracking-widest text-[#2196F3]"
@@ -320,8 +365,8 @@ export default function LoginPage() {
         >
           {pending
             ? mode === "login"
-              ? "Signing in…"
-              : "Creating account…"
+              ? "Signing inâ€¦"
+              : "Creating accountâ€¦"
             : mode === "login"
             ? "Sign In"
             : "Create Account"}
@@ -354,6 +399,26 @@ export default function LoginPage() {
           )}
         </p>
       </form>
+      )}
     </main>
+  );
+}
+
+// Static placeholder rendered for the very first (server-matching) client
+// pass, before any real <input> elements exist for a password manager to
+// attach to. Shape roughly mirrors the real form so there's minimal layout
+// shift once it's swapped in.
+function FormSkeleton({ mode }: { mode: Mode }) {
+  const fieldCount = mode === "register" ? 4 : 2;
+  return (
+    <div className="w-full max-w-lg flex flex-col gap-3" aria-hidden="true">
+      {Array.from({ length: fieldCount }).map((_, i) => (
+        <div
+          key={i}
+          className="rounded-2xl bg-[#f0f4f8] dark:bg-[#161b22] px-5 py-4 h-[68px] shadow-sm animate-pulse"
+        />
+      ))}
+      <div className="mt-2 w-full rounded-2xl bg-[#2196F3]/40 h-[52px] animate-pulse" />
+    </div>
   );
 }

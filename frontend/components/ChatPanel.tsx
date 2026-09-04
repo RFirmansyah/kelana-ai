@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { askQuestion, getSourceLabel, type AskSource } from "@/services/kbService";
+import ReactMarkdown from "react-markdown";
+import {
+  createConversation,
+  sendMessage,
+  type ConversationOut,
+} from "@/services/kbService";
+
+type ChatMode = "rag" | "llm";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
-  sources?: AskSource[];
+  createdAt: string;
   isError?: boolean;
 }
 
@@ -23,54 +30,97 @@ function newId() {
 }
 
 interface ChatPanelProps {
-  /** Tailwind height class for the scrollable message area. */
   heightClass?: string;
+  initialConversation?: ConversationOut | null;
+  onConversationCreated?: (conv: ConversationOut) => void;
+  onMessageSent?: (conversationId: number, userText: string, assistantText: string) => void;
 }
 
-export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
+export function ChatPanel({
+  heightClass = "h-[520px]",
+  initialConversation,
+  onConversationCreated,
+  onMessageSent,
+}: ChatPanelProps) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [mode, setMode] = useState<ChatMode>("rag");
+  const [conversationId, setConversationId] = useState<number | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Restore history when a conversation is selected from the sidebar
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, sending]);
+    if (initialConversation) {
+      setConversationId(initialConversation.id);
+      setMessages(
+        initialConversation.messages.map((m) => ({
+          id: String(m.id),
+          role: m.role,
+          text: m.content,
+          createdAt: m.created_at ?? new Date().toISOString(),
+        }))
+      );
+    } else {
+      setConversationId(null);
+      setMessages([]);
+    }
+    setInput("");
+  }, [initialConversation?.id]);
+
+  // Keep the latest message visible both when opening/restoring a conversation
+  // and whenever a new message/typing indicator is appended.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({
+        behavior: messages.length > 0 && !initialConversation ? "smooth" : "auto",
+        block: "end",
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [initialConversation?.id, messages.length, sending]);
+
+  async function getOrCreateConversation(token: string): Promise<number> {
+    if (conversationId !== null) return conversationId;
+    const conv = await createConversation(token);
+    setConversationId(conv.id);
+    onConversationCreated?.(conv);
+    return conv.id;
+  }
 
   async function handleSend(question?: string) {
     const text = (question ?? input).trim();
     if (!text || sending) return;
 
     const token = localStorage.getItem("access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!token) { router.push("/login"); return; }
 
-    setMessages((prev) => [...prev, { id: newId(), role: "user", text }]);
+    setMessages((prev) => [
+      ...prev,
+      { id: newId(), role: "user", text, createdAt: new Date().toISOString() },
+    ]);
     setInput("");
     setSending(true);
 
     try {
-      const res = await askQuestion(token, text);
+      const convId = await getOrCreateConversation(token);
+      const reply = await sendMessage(token, convId, text, mode);
       setMessages((prev) => [
         ...prev,
-        {
-          id: newId(),
-          role: "assistant",
-          text: res.answer.answer || "I couldn't find anything relevant to that in the knowledge base.",
-          sources: res.answer.source,
-        },
+        { id: String(reply.id), role: "assistant", text: reply.content, createdAt: reply.created_at ?? new Date().toISOString() },
       ]);
+      onMessageSent?.(convId, text, reply.content);
     } catch (err) {
       setMessages((prev) => [
         ...prev,
         {
           id: newId(),
           role: "assistant",
-          text: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          text: err instanceof Error ? err.message : "Something went wrong.",
+          createdAt: new Date().toISOString(),
           isError: true,
         },
       ]);
@@ -81,26 +131,81 @@ export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); }
   }
 
+  function handleNewChat() {
+    setMessages([]);
+    setConversationId(null);
+    setInput("");
+    inputRef.current?.focus();
+  }
+
+  const chatTitle = useMemo(() => {
+    if (initialConversation?.title?.trim()) return initialConversation.title.trim();
+    const firstUserMessage = messages.find((message) => message.role === "user");
+    if (firstUserMessage) {
+      const title = firstUserMessage.text.replace(/\s+/g, " ").trim();
+      return title.length > 80 ? `${title.slice(0, 77)}…` : title;
+    }
+    return "New conversation";
+  }, [initialConversation?.title, messages]);
+
   return (
-    <div className="flex flex-col rounded-3xl border border-gray-200 bg-white shadow-xl shadow-gray-200/60 dark:border-white/8 dark:bg-[#161b22] dark:shadow-black/40 overflow-hidden">
+    <div className="flex flex-col rounded-3xl border border-gray-200 bg-white shadow-xl shadow-gray-200/60 dark:border-white/8 dark:bg-[#161b22] dark:shadow-black/40 overflow-hidden h-full">
+
+      {/* Toolbar / conversation header */}
+      <div className="shrink-0 px-4 py-2.5 border-b border-gray-100 dark:border-white/8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Conversation</p>
+            <h2 className="truncate text-sm font-bold text-gray-800 dark:text-gray-100" title={chatTitle}>
+              {chatTitle}
+            </h2>
+          </div>
+          <div className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5 p-0.5">
+          {(["rag", "llm"] as ChatMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`rounded-lg px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
+                mode === m
+                  ? m === "rag" ? "bg-sky-500 text-white shadow-sm" : "bg-violet-500 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+              }`}
+            >
+              {m === "rag" ? "📚 RAG" : "🤖 LLM"}
+            </button>
+          ))}
+          </div>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 hidden lg:block">
+          {mode === "rag" ? "Grounded in knowledge base" : "Free-form AI assistant"}
+        </span>
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="shrink-0 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5"
+          >
+            + New
+          </button>
+        </div>
+      </div>
+
       {/* Messages */}
-      <div className={`${heightClass} overflow-y-auto px-5 py-5`}>
-        <div className="flex flex-col gap-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-5 min-h-0">
+        <div className="flex flex-col gap-5">
           {messages.length === 0 && (
             <div className="flex flex-col items-center text-center gap-4 py-6">
-              <div className="text-4xl">🧭</div>
+              <div className="text-4xl">{mode === "rag" ? "📚" : "🤖"}</div>
               <div>
                 <h3 className="text-base font-bold bg-gradient-to-r from-sky-500 to-violet-500 dark:from-sky-400 dark:to-violet-400 bg-clip-text text-transparent">
-                  Ask KelanaAI Assistant
+                  {mode === "rag" ? "Ask KelanaAI (Knowledge Base)" : "Chat with KelanaAI"}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs mx-auto">
-                  Ask a travel question and I&apos;ll answer using the KelanaAI knowledge base.
+                  {mode === "rag"
+                    ? "I'll answer using documents in the KelanaAI knowledge base."
+                    : "I'm your AI travel assistant. Ask me anything!"}
                 </p>
               </div>
               <div className="flex flex-col gap-2 w-full">
@@ -118,12 +223,8 @@ export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
             </div>
           )}
 
-          {messages.map((m) => (
-            <ChatBubble key={m.id} message={m} />
-          ))}
-
+          {messages.map((m) => <ChatBubble key={m.id} message={m} />)}
           {sending && <TypingBubble />}
-
           <div ref={bottomRef} />
         </div>
       </div>
@@ -136,7 +237,7 @@ export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about destinations, packing, budgeting…"
+            placeholder={mode === "rag" ? "Ask about destinations, packing…" : "Chat with your AI travel assistant…"}
             rows={1}
             disabled={sending}
             className="flex-1 resize-none max-h-28 rounded-2xl border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 outline-none focus:ring-2 focus:ring-sky-400 disabled:opacity-60"
@@ -145,8 +246,10 @@ export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
             type="button"
             onClick={() => handleSend()}
             disabled={sending || !input.trim()}
-            aria-label="Send message"
-            className="shrink-0 flex items-center justify-center w-10 h-10 rounded-2xl bg-sky-500 hover:bg-sky-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors cursor-pointer"
+            aria-label="Send"
+            className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-2xl disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors cursor-pointer ${
+              mode === "rag" ? "bg-sky-500 hover:bg-sky-600" : "bg-violet-500 hover:bg-violet-600"
+            }`}
           >
             <SendIcon />
           </button>
@@ -156,33 +259,63 @@ export function ChatPanel({ heightClass = "h-[520px]" }: ChatPanelProps) {
   );
 }
 
+// ── Bubbles ────────────────────────────────────────────────────────────────────
+
+function formatMessageTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function ChatBubble({ message }: { message: ChatMessage }) {
   const isUser = message.role === "user";
+  const timestamp = formatMessageTime(message.createdAt);
+
+  if (isUser) {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[80%] flex flex-col items-end gap-1">
+          <div className="rounded-2xl rounded-br-md bg-sky-500 px-4 py-2.5 text-sm text-white leading-relaxed">
+            {message.text}
+          </div>
+          {timestamp && (
+            <span className="px-1 text-[10px] text-gray-400 dark:text-gray-500">{timestamp}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (message.isError) {
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-[85%] flex flex-col items-start gap-1">
+          <div className="rounded-2xl rounded-bl-md border border-red-200 bg-red-50 dark:border-red-500/30 dark:bg-red-500/10 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 leading-relaxed">
+            {message.text}
+          </div>
+          {timestamp && (
+            <span className="px-1 text-[10px] text-gray-400 dark:text-gray-500">{timestamp}</span>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
-          isUser
-            ? "bg-sky-500 text-white rounded-br-md"
-            : message.isError
-            ? "bg-red-50 text-red-600 border border-red-200 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400 rounded-bl-md"
-            : "bg-gray-50 text-gray-800 border border-gray-200 dark:bg-white/5 dark:border-white/10 dark:text-gray-100 rounded-bl-md"
-        }`}
-      >
-        {message.text}
-
-        {message.sources && message.sources.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-100 dark:border-white/10 flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-              Sources
-            </span>
-            {message.sources.map((s, i) => (
-              <span key={i} className="text-xs text-sky-600 dark:text-sky-400 truncate">
-                📄 {getSourceLabel(s)}
-              </span>
-            ))}
+    <div className="flex justify-start">
+      <div className="max-w-[85%] flex flex-col items-start gap-1">
+        <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5 px-4 py-3">
+          <div className="chat-md text-sm text-gray-800 dark:text-gray-100">
+            <ReactMarkdown>{message.text}</ReactMarkdown>
           </div>
+        </div>
+        {timestamp && (
+          <span className="px-1 text-[10px] text-gray-400 dark:text-gray-500">{timestamp}</span>
         )}
       </div>
     </div>
@@ -191,11 +324,14 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 
 function TypingBubble() {
   return (
-    <div className="flex justify-start">
-      <div className="bg-gray-50 border border-gray-200 dark:bg-white/5 dark:border-white/10 rounded-2xl rounded-bl-md px-4 py-2.5 flex items-center gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" />
+    <div className="flex justify-start" aria-live="polite" aria-label="KelanaAI is typing">
+      <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-gray-50 dark:border-white/10 dark:bg-white/5 px-4 py-2.5 flex items-center gap-2">
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">KelanaAI is thinking</span>
+        <span className="flex items-center gap-1" aria-hidden="true">
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.3s]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce [animation-delay:-0.15s]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce" />
+        </span>
       </div>
     </div>
   );
@@ -208,3 +344,4 @@ function SendIcon() {
     </svg>
   );
 }
+

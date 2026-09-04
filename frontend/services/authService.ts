@@ -78,12 +78,15 @@ export async function getMe(token: string): Promise<MeResponse> {
   return res.json();
 }
 
-export function logout(): void {
+export async function logout(): Promise<void> {
   if (typeof window !== "undefined") {
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");
   }
-  document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+
+  // Clear the application session through Next.js so the server-rendered
+  // routes and browser-side auth state are cleared together.
+  await fetch("/api/auth/session", { method: "DELETE", cache: "no-store" }).catch(() => {});
 }
 
 export async function changePassword(

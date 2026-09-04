@@ -2,17 +2,28 @@ import os
 import bcrypt
 import jwt
 from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from models.user import User
 from database import SessionLocal
 
+load_dotenv()
 
 # ── JWT config ────────────────────────────────────────────────────────────────
 _SECRET_KEY  = os.getenv("JWT_SECRET_KEY", "k3L4na-s3cret")
 _ALGORITHM   = os.getenv("JWT_ALGORITHM",  "HS256")
 _EXPIRE_MINS = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+
+if _SECRET_KEY == "k3L4na-s3cret":
+    import warnings
+    warnings.warn(
+        "JWT_SECRET_KEY is not set in .env — falling back to an insecure "
+        "default signing key. Set JWT_SECRET_KEY to a long random value "
+        "before deploying anywhere beyond local development.",
+        stacklevel=2,
+    )
 
 _bearer_scheme = HTTPBearer()
 
@@ -117,7 +128,7 @@ def login_user(db: Session, email: str, password: str) -> dict:
         raise ValueError("Invalid email or password")
 
     token = _create_access_token(user.id, user.email)
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer", "name": user.name}
 
 
 def change_password(

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useRef } from "react"
 import ReactMarkdown from "react-markdown"
@@ -78,7 +78,7 @@ export function ItinerarySlider({ days }: ItinerarySliderProps) {
         </div>
 
         {/* Content */}
-        <div className="text-sm text-gray-700 dark:text-gray-300 prose prose-sm dark:prose-invert max-w-none">
+        <div className="chat-md text-sm text-gray-700 dark:text-gray-300">
           <ReactMarkdown>{section.content.trim()}</ReactMarkdown>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function ItinerarySlider({ days }: ItinerarySliderProps) {
           disabled={active === 0}
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-200 text-gray-600 hover:border-sky-400 hover:text-sky-600 disabled:opacity-30 disabled:cursor-not-allowed dark:border-white/10 dark:text-gray-400 dark:hover:border-sky-500 dark:hover:text-sky-400 transition-colors"
         >
-          ← Prev
+          â† Prev
         </button>
 
         {/* Dot indicators */}
@@ -114,9 +114,10 @@ export function ItinerarySlider({ days }: ItinerarySliderProps) {
           disabled={active === days.length - 1}
           className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl border border-gray-200 text-gray-600 hover:border-sky-400 hover:text-sky-600 disabled:opacity-30 disabled:cursor-not-allowed dark:border-white/10 dark:text-gray-400 dark:hover:border-sky-500 dark:hover:text-sky-400 transition-colors"
         >
-          Next →
+          Next â†’
         </button>
       </div>
     </div>
   )
 }
+

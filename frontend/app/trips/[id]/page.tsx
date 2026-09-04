@@ -11,6 +11,7 @@ import { TripActions } from "@/components/TripActions"
 import type { Trip } from "@/types/trip"
 
 export const dynamic = "force-dynamic"
+export const fetchCache = "force-no-store"
 
 interface Props {
   params: Promise<{ id: string }>

@@ -24,6 +24,7 @@ async function serverAuthHeaders(): Promise<HeadersInit> {
 export async function getTrips() {
   const res = await fetch(`${API_URL}/trips`, {
     headers: await serverAuthHeaders(),
+    cache: "no-store",
   })
   if (!res.ok) throw new ApiError(`Failed to fetch trips (${res.status})`, res.status)
   return res.json()
@@ -32,6 +33,7 @@ export async function getTrips() {
 export async function getTrip(id: number) {
   const res = await fetch(`${API_URL}/trips/${id}`, {
     headers: await serverAuthHeaders(),
+    cache: "no-store",
   })
   if (!res.ok) throw new ApiError(`Failed to fetch trip (${res.status})`, res.status)
   return res.json()
@@ -42,6 +44,7 @@ export async function generateTrip(data: unknown) {
     method: "POST",
     headers: await serverAuthHeaders(),
     body: JSON.stringify(data),
+    cache: "no-store",
   })
   if (!res.ok) throw new ApiError(`Failed to create trip (${res.status})`, res.status)
   return res.json()
