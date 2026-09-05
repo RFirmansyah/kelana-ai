@@ -1,4 +1,4 @@
-﻿import ReactMarkdown from "react-markdown"
+import ReactMarkdown from "react-markdown"
 import type { Trip } from "@/types/trip"
 
 interface TripCardProps {
