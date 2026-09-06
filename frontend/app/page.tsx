@@ -122,7 +122,7 @@ function HomeContent() {
 
     try {
       const token = localStorage.getItem("access_token");
-      const response = await fetch("http://localhost:8000/api/v1/trips", {
+      const response = await fetch("https://kelana-ai-e9b42985.fastapicloud.dev/api/v1/trips", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
