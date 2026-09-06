@@ -1,7 +1,9 @@
-﻿from dotenv import load_dotenv
+﻿import os
+from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional, List
@@ -103,13 +105,33 @@ class SendMessageRequest(BaseModel):
 
 app = FastAPI()
 
+FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+allowed_origins = ["https://kelana-ai-blush.vercel.app"]
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://kelana-ai-blush.vercel.app"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure unhandled exceptions still return proper CORS headers instead of
+# surfacing to the browser as a misleading "CORS error" that hides the
+# real 500. Registering this handler keeps the response inside the
+# ExceptionMiddleware layer (which CORSMiddleware wraps), so the CORS
+# headers get attached normally.
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    import logging, traceback
+    logging.error("Unhandled exception: %s", traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 init_db()
 
