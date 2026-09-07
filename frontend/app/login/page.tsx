@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -138,11 +138,34 @@ export default function LoginPage() {
     router.refresh();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setServerError(null);
 
-    const errors = validate(form, mode);
+    // Read the fields straight from the DOM via FormData rather than
+    // trusting only React's controlled-input state. Password managers
+    // (LastPass, 1Password, browser built-in autofill, etc.) commonly
+    // fill inputs by writing the DOM value directly without dispatching
+    // the "input" event React listens for. When that happens, `form`
+    // state stays stuck at its initial empty value even though the
+    // fields visibly look filled — so validation below rejects a
+    // perfectly valid submission, and only a second, keystroke-driven
+    // submit (which does fire onChange) goes through. Reading FormData
+    // sidesteps this entirely, since it always reflects the live DOM
+    // value regardless of how it got there.
+    const formData = new FormData(e.currentTarget);
+    const currentValues: FormState = {
+      name: (formData.get("name") as string) ?? form.name,
+      email: (formData.get("email") as string) ?? form.email,
+      password: (formData.get("password") as string) ?? form.password,
+      confirmPassword: (formData.get("confirmPassword") as string) ?? form.confirmPassword,
+    };
+
+    // Keep React state in sync so the rest of the UI (and any re-render
+    // after a validation error) reflects what was actually submitted.
+    setForm(currentValues);
+
+    const errors = validate(currentValues, mode);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -151,18 +174,10 @@ export default function LoginPage() {
     setPending(true);
     try {
       if (mode === "login") {
-        await completeLogin(form.email, form.password);
-        // const { access_token } = await login(form.email, form.password);
-        // localStorage.setItem("access_token", access_token);
-        // document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
-        // window.location.href = "/trips";
+        await completeLogin(currentValues.email, currentValues.password);
       } else {
-        await register(form.name, form.email, form.password);
-        await completeLogin(form.email, form.password);
-        // const { access_token } = await login(form.email, form.password);
-        // localStorage.setItem("access_token", access_token);
-        // document.cookie = `access_token=${access_token}; path=/; max-age=86400; SameSite=Lax`;
-        // window.location.href = "/trips";
+        await register(currentValues.name, currentValues.email, currentValues.password);
+        await completeLogin(currentValues.email, currentValues.password);
       }
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Something went wrong.");

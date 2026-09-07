@@ -566,6 +566,10 @@ function HomeContent() {
             <a href="/trips" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               My Trips
             </a>
+            <span className="text-gray-200 dark:text-white/10">|</span>
+            <a href="/about" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+              About
+            </a>
           </div>
 
           {/* Copyright */}
