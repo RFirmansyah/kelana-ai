@@ -173,15 +173,7 @@ function HomeContent() {
           <nav className="hidden sm:flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
             <a href="#plan" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Plan Trip</a>
             <a href="/trips" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">My Trips</a>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-            >
-              <GithubIcon />
-              GitHub
-            </a>
+            <a href="/about" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">About</a>
             <ThemeToggle />
           <UserMenu />
           </nav>
@@ -550,7 +542,7 @@ function HomeContent() {
           {/* Links */}
           <div className="flex items-center gap-5 text-sm text-gray-500 dark:text-gray-400">
             <a
-              href="https://github.com"
+              href="https://github.com/RFirmansyah/kelana-ai"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
